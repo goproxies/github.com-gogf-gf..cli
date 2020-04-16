@@ -68,6 +68,11 @@ func Insert(data ...interface{}) (result sql.Result, err error) {
 	return Model.Insert(data...)
 }
 
+// InsertIgnore is a convenience method for Model.InsertIgnore.
+func InsertIgnore(data ...interface{}) (result sql.Result, err error) {
+	return Model.InsertIgnore(data...)
+}
+
 // Replace is a convenience method for Model.Replace.
 func Replace(data ...interface{}) (result sql.Result, err error) {
 	return Model.Replace(data...)
@@ -223,8 +228,8 @@ func (m *arModel) Batch(batch int) *arModel {
 // control the cache like changing the <duration> or clearing the cache with specified <name>.
 //
 // Note that, the cache feature is disabled if the model is operating on a transaction.
-func (m *arModel) Cache(expire time.Duration, name ...string) *arModel {
-	return &arModel{m.M.Cache(expire, name...)}
+func (m *arModel) Cache(duration time.Duration, name ...string) *arModel {
+	return &arModel{m.M.Cache(duration, name...)}
 }
 
 // Data sets the operation data for the model.
@@ -311,5 +316,15 @@ func (m *arModel) Chunk(limit int, callback func(entities []*Entity, err error) 
 		}
 		return callback(entities, err)
 	})
+}
+
+// LockUpdate sets the lock for update for current operation.
+func (m *arModel) LockUpdate() *arModel {
+	return &arModel{m.M.LockUpdate()}
+}
+
+// LockShared sets the lock in share mode for current operation.
+func (m *arModel) LockShared() *arModel {
+	return &arModel{m.M.LockShared()}
 }
 `
