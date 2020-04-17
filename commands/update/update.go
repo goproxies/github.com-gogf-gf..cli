@@ -52,27 +52,41 @@ func Run() {
 			ext,
 			latestMd5,
 		)
-		data := ghttp.GetBytes(downloadUrl)
-		if len(data) == 0 {
+		mlog.Debugf("HTTP GET %s", downloadUrl)
+		res, err := ghttp.Get(downloadUrl)
+		if err != nil || res.StatusCode != 200 {
 			mlog.Fatalf(
-				"downloading failed for %s %s, may be network issue",
-				runtime.GOOS, runtime.GOARCH,
+				"downloading failed for %s %s, may be network issue:\n%s",
+				runtime.GOOS, runtime.GOARCH, res.ReadAllString(),
 			)
 		}
+		defer res.Close()
+		data := res.ReadAll()
 		mlog.Print("installing...")
 		var (
 			binPath    = gfile.SelfPath()
+			binDirPath = gfile.SelfDir()
 			renamePath = binPath + "~"
 		)
 		// Rename myself for windows.
-		if err := gfile.Rename(binPath, renamePath); err != nil {
-			mlog.Fatal("rename binary file failed:", err.Error())
+		if runtime.GOOS == "windows" {
+			if err := gfile.Rename(binPath, renamePath); err != nil {
+				mlog.Fatal("rename binary file failed:", err.Error())
+			}
+			defer gfile.Remove(renamePath)
 		}
-		// Updates the binary content.
+		// Updates the binary.
+		if gfile.IsWritable(binDirPath) {
+			if err := gfile.Remove(binPath); err != nil {
+				mlog.Fatal("remove binary failed:", err.Error())
+			}
+		}
 		if err := gfile.PutBytes(binPath, data); err != nil {
 			mlog.Fatal("install binary failed:", err.Error())
 		}
-		gfile.Remove(renamePath)
+		if err := gfile.Chmod(binPath, 0777); err != nil {
+			mlog.Fatal("chmod binary failed:", err.Error())
+		}
 		mlog.Print("gf binary is now updated to the latest version")
 	} else {
 		mlog.Print("it's the latest version, no need updates")
